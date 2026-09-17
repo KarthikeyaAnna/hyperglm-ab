@@ -1,0 +1,46 @@
+{
+ "tasks_dir": "/home/karthik/Hyper-GLM/data/tasks",
+ "split": "test",
+ "limit": null,
+ "rule_threshold": 0.75,
+ "sga": {
+  "n_items": 1785,
+  "n_items_with_change": 1519,
+  "persistence": {
+   "R@10": 75.5,
+   "mR@10": 57.5,
+   "R@20": 78.3,
+   "mR@20": 64.9,
+   "R@50": 78.3,
+   "mR@50": 65.1,
+   "transition_f1_macro": 17.8,
+   "transition_f1_micro": 0.0
+  },
+  "table_rule_stay<0.75": {
+   "R@10": 65.7,
+   "mR@10": 41.1,
+   "R@20": 67.7,
+   "mR@20": 44.9,
+   "R@50": 67.8,
+   "mR@50": 45.0,
+   "transition_f1_macro": 30.2,
+   "transition_f1_micro": 30.3
+  },
+  "oracle": {
+   "R@10": 96.7,
+   "mR@10": 87.3,
+   "R@20": 100.0,
+   "mR@20": 99.8,
+   "R@50": 100.0,
+   "mR@50": 100.0,
+   "transition_f1_macro": 100.0,
+   "transition_f1_micro": 100.0
+  }
+ },
+ "rr_hard": {
+  "n_items": 1810,
+  "majority_per_group_acc": 44.1,
+  "object_prior_acc": 61.0,
+  "prior_source": "train minus val"
+ }
+}

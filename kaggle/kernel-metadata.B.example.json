@@ -1,0 +1,16 @@
+{
+ "id": "<kaggle-user>/hyperglm-r-pilot-13-b",
+ "title": "hyperglm-r-pilot-13-b",
+ "code_file": "run_pilot13_B.py",
+ "language": "python",
+ "kernel_type": "script",
+ "is_private": true,
+ "enable_gpu": true,
+ "enable_tpu": false,
+ "enable_internet": false,
+ "dataset_sources": ["<kaggle-user>/hyperglm-r13"],
+ "competition_sources": ["arc-prize-2026-arc-agi-3"],
+ "kernel_sources": [],
+ "model_sources": ["qwen-lm/qwen-3/transformers/8b/1"],
+ "machine_shape": "NvidiaRtxPro6000"
+}

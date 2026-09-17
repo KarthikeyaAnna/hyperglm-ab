@@ -1,0 +1,44 @@
+====================================================================================================
+SGA (scene graph anticipation) — pilot-13 format: slot timelines
+item id: sga13-0.9:val:YJV7W.mp4   (video YJV7W.mp4, observed 25 of 28 annotated frames, 2 real changes)
+====================================================================================================
+
+--- PROMPT (identical for [A] and [B] apart from the final instruction) ---
+
+objects seen: person, clothes, phone/camera
+observed annotated frames: 25 (frame 10 to 477)
+slot timelines (object/group: state@first-last frame | ...; '-' = none, 'absent' = object not annotated):
+  clothes/attention: absent@10-269 | not_looking_at@310 | unsure@330-352 | not_looking_at@394-477 (now, 5 frames)
+  clothes/spatial: absent@10-269 | in@310-477 (now, 9 frames)
+  clothes/contacting: absent@10-269 | wearing@310-477 (now, 9 frames)
+  phone/camera/attention: ... 3 earlier | not_looking_at@208 | looking_at@237 | not_looking_at@244 | unsure@269 | absent@310-352 | not_looking_at@394 | looking_at@407-435 | not_looking_at@477 (now, 1 frames)
+  phone/camera/spatial: in_front_of@10-269 | absent@310-352 | in_front_of@394-477 (now, 5 frames)
+  phone/camera/contacting: holding@10-147 | touching@166 | holding@201-269 | absent@310-352 | holding@394-477 (now, 5 frames)
+transitions for current states (predicate -> prob it stays | next predicate and its prob given a change):
+  clothes/attention: not_looking_at -> stay 0.67 | unsure 0.64 | looking_at 0.36
+  clothes/spatial: in -> stay 0.86 | behind 0.41 | in_front_of 0.30 | on_the_side_of 0.22
+  clothes/contacting: wearing -> stay 0.89 | touching 0.61 | holding 0.35 | not_contacting 0.02
+  phone/camera/attention: not_looking_at -> stay 0.82 | looking_at 0.83 | unsure 0.17
+  phone/camera/spatial: in_front_of -> stay 0.96 | on_the_side_of 0.65 | above 0.27 | beneath 0.06
+  phone/camera/contacting: holding -> stay 0.97 | touching 0.82 | not_contacting 0.13 | carrying 0.03
+future frames to predict (frame (+frames after the last observed)): 512 (+35), 690 (+213), 731 (+254)
+
+Observed 25 of 28 annotated frames. For the objects present in the last observed frame (clothes, phone/camera), predict every change of their attention / spatial / contacting predicates in the future frames. A slot keeps its current state unless a change is listed; a change holds from its frame until that slot's next change. Schema: {"changes": [["<object>", "<group>", ["<predicate>", ...], <frame>], ...]}
+
+Reason first inside <infer>...</infer>: one line per object/group slot listed above, giving its current state, how many frames it has held, its stay probability, its most likely next state, then '-> stays' or '-> <new state> from <frame>'. Then give the final JSON inside <answer>...</answer>.
+
+--- TARGET [A]: answer only ---
+
+{"changes":[["phone/camera","attention",["looking_at"],690],["phone/camera","spatial",["above","in_front_of"],690]]}
+
+--- TARGET [B]: reasoning chain + answer ---
+
+<infer>
+clothes/attention: not_looking_at for 5 frames, stay 0.67, top next unsure 0.64, before unsure -> stays
+clothes/spatial: in for 9 frames, stay 0.86, top next behind 0.41 -> stays
+clothes/contacting: wearing for 9 frames, stay 0.89, top next touching 0.61 -> stays
+phone/camera/attention: not_looking_at for 1 frames, stay 0.82, top next looking_at 0.83, before looking_at -> looking_at from 690
+phone/camera/spatial: in_front_of for 5 frames, stay 0.96, top next on_the_side_of 0.65 -> above in_front_of from 690
+phone/camera/contacting: holding for 5 frames, stay 0.97, top next touching 0.82, before touching -> stays
+</infer>
+<answer>{"changes":[["phone/camera","attention",["looking_at"],690],["phone/camera","spatial",["above","in_front_of"],690]]}</answer>

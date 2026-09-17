@@ -1,0 +1,39 @@
+{
+ "thresholds_from_val": {
+  "keep": 0.2,
+  "new": 0.25
+ },
+ "val_transition_f1_macro": 39.8,
+ "val": {
+  "n": 816,
+  "transition_f1_macro": 39.8,
+  "table_rule_transition_f1_macro": 32.2,
+  "gbm_minus_table_rule": [
+   7.64,
+   5.0,
+   10.27
+  ],
+  "R@10": 91.9,
+  "mR@10": 75.2,
+  "R@20": 98.9,
+  "mR@20": 90.6,
+  "R@50": 100.0,
+  "mR@50": 99.8
+ },
+ "test": {
+  "n": 1785,
+  "transition_f1_macro": 40.7,
+  "table_rule_transition_f1_macro": 30.2,
+  "gbm_minus_table_rule": [
+   10.52,
+   8.89,
+   12.21
+  ],
+  "R@10": 88.1,
+  "mR@10": 63.1,
+  "R@20": 98.1,
+  "mR@20": 87.3,
+  "R@50": 99.9,
+  "mR@50": 99.7
+ }
+}

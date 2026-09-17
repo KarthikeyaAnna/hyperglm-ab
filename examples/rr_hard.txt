@@ -1,0 +1,38 @@
+====================================================================================================
+RR-hard (hidden relationship) — one slot masked in every frame
+item id: rr:val:YJV7W.mp4:435:phone/camera:contacting   (video YJV7W.mp4, masked slot phone/camera/contacting in frame 435)
+====================================================================================================
+
+--- PROMPT (identical for [A] and [B] apart from the final instruction) ---
+
+objects: person, clothes, phone/camera
+columns per object: attention / spatial / contacting
+frame 394: clothes: not_looking_at / in / wearing | phone/camera: not_looking_at / in_front_of / ?
+frame 407: clothes: not_looking_at / in / wearing | phone/camera: looking_at / in_front_of / ?
+frame 423: clothes: not_looking_at / in / wearing | phone/camera: looking_at / in_front_of / ?
+frame 435: clothes: not_looking_at / in / wearing | phone/camera: looking_at / in_front_of / ?
+transitions from last frame (predicate -> prob it stays | next predicate and its prob given a change):
+  clothes/attention: not_looking_at -> stay 0.67 | unsure 0.64 | looking_at 0.36
+  clothes/spatial: in -> stay 0.86 | behind 0.41 | in_front_of 0.30 | on_the_side_of 0.22
+  clothes/contacting: wearing -> stay 0.89 | touching 0.61 | holding 0.35 | not_contacting 0.02
+  phone/camera/attention: looking_at -> stay 0.90 | not_looking_at 0.71 | unsure 0.29
+  phone/camera/spatial: in_front_of -> stay 0.96 | on_the_side_of 0.65 | above 0.27 | beneath 0.06
+
+The '?' marks the missing contacting predicate(s) of 'phone/camera' in frame 435 (hidden in every frame). Infer them from the rest of the graph. Schema: {"predicates": [...]}
+
+Reason first inside <cite>...</cite> and <infer>...</infer>, then give the final JSON inside <answer>...</answer>. Each <cite> line must be one of: '<object>/<group>: <predicate> @<frame>' copied from an observed frame, or '<object>/<group>: <predicate> -> <next> <prob>' copied from the transition table. Cite only what appears in the graph above.
+
+--- TARGET [A]: answer only ---
+
+{"predicates":["holding"]}
+
+--- TARGET [B]: reasoning chain + answer ---
+
+<cite>
+phone/camera/attention: looking_at @435
+phone/camera/spatial: in_front_of @435
+</cite>
+<infer>
+in frame 435 phone/camera is looking_at in_front_of in the other groups, consistent with contacting = holding
+</infer>
+<answer>{"predicates":["holding"]}</answer>

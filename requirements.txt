@@ -1,0 +1,7 @@
+# versions used for every reported run (Kaggle image: Python 3.12, CUDA torch preinstalled)
+torch
+transformers==5.2.0
+trl==1.13.0
+peft==0.20.0
+accelerate==1.14.0
+datasets==4.8.5
