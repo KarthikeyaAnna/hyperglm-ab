@@ -1,16 +1,48 @@
 # HyperGLM-R · Does explicit reasoning help an LLM predict video scene graphs?
 
-A single controlled experiment on Action Genome. Two models, identical in every respect except one:
+A single controlled experiment on Action Genome, comparing two fine-tuned models that differ in exactly one way:
+whether the model reasons out loud before answering.
 
-* **[A] answer only** — given the scene graph, the model outputs the answer.
-* **[B] reasoning + answer** — the model first writes one short evidence line per relationship, then the answer.
+## The two conditions, [A] and [B]
 
-Same base model, same training items, same prompts, same decoding, same test items, same metrics. So whatever [B]
-wins by is attributable to the reasoning chain and not to the format, the data, or the decoding.
+Throughout this project, **[A]** and **[B]** are the names of the two training conditions. They are two LoRA
+adapters trained on the same frozen Qwen3-8B, from the same items, with the same hyper-parameters, and evaluated on
+the same test items with the same metrics. The **only** differences are the last line of the prompt and the text the
+model is trained to produce.
 
-**Headline result (Action Genome test, 1,785 videos, scored once):** reasoning improves change prediction by
-**+3.44 transition F1 [+1.92, +5.10]** over the answer-only control. Neither condition beats the strongest
-non-learned baseline on that metric, and this README says exactly where the remaining gap is.
+| | **[A] — answer only** (the control) | **[B] — reasoning + answer** (the method) |
+|---|---|---|
+| Sees | the scene graph as text | the identical scene graph as text |
+| Prompt ends with | "Respond with the JSON only." | "Reason first inside `<infer>…</infer>`, one line per slot, then give the JSON inside `<answer>…</answer>`." |
+| Trained to output | the answer alone | one evidence line per relationship, then the same answer |
+| Typical output length | ~48 tokens | ~279 tokens |
+| Purpose | shows what the model achieves **without** reasoning | shows what reasoning adds |
+
+**[A]'s output** (the whole thing):
+
+```json
+{"changes":[["phone/camera","attention",["looking_at"],690]]}
+```
+
+**[B]'s output** — the same answer, preceded by its reasoning:
+
+```
+<infer>
+clothes/contacting: wearing (stay 0.96 at 9 frames held; else holding 0.62) -> stays
+phone/camera/attention: not_looking_at (stay 0.67 at 1 frames held; else looking_at 0.65; slot changed 8x) -> looking_at from 690
+</infer>
+<answer>{"changes":[["phone/camera","attention",["looking_at"],690]]}</answer>
+```
+
+**Why [A] exists.** Without it, a good result from [B] could equally come from the answer format, the training data,
+or the decoding scheme — all of which changed from earlier runs. [A] holds those constant, so the difference between
+the two columns is the reasoning chain and nothing else. In the code, the condition is a single flag:
+`--condition A` or `--condition B`, selecting `target_A` or `target_B` of the same item (see `examples/sga.txt`,
+which prints one real item's prompt and both targets).
+
+**Headline result (Action Genome test, 1,785 videos, scored once):** [B] beats [A] on change prediction by
+**+3.44 transition F1 [+1.92, +5.10]**. Neither condition beats the strongest non-learned baseline on that metric,
+and section 6.3 says exactly where the remaining gap is.
 
 ---
 
@@ -219,28 +251,11 @@ A difference counts only if the 95 % interval excludes zero. Thresholds come fro
 
 ---
 
-## 6. Baselines (all on the same test items)
+## 6. Results
 
-| baseline | what it does | why it is there |
-|---|---|---|
-| **persistence** | predicts nothing changes | the floor any model must clear; exposes R@K inflation |
-| **table rule** | moves a relationship to its most likely successor when its stay probability < 0.75 (θ chosen on val) | uses exactly the statistics the prompt shows, with no learning — the honest bar for change prediction |
-| **ranked table** | persistence, then the table's successors, ranked | the fair R@K comparison for a ranked output |
-| **oracle** | the gold answer | ceiling (R@10 96.7, not 100, because the top-K cut-off truncates dense frames) |
-| **object prior** (RR) | the most common relationship for that object and group in train | the floor for RR-hard |
-| **prior given other groups** (RR) | the most common relationship given the object's other two groups | a stronger statistical competitor |
-| **gradient-boosting reference** | a small non-LLM model over graph features (duration, horizon, slot history, table probabilities), thresholds from val | shows how much of the task is solvable from the graph at all — the honest ceiling for any graph-only method |
+### 6.1 [A] answer-only vs [B] reasoning — the experiment
 
-The scorer recomputes every baseline on whatever items it scores, so model and baseline numbers can never drift
-apart.
-
----
-
-## 7. Results
-
-### 7.1 [A] vs [B] — the experiment
-
-| Metric | [A] answer only | [B] reasoning | [B] − [A] |
+| Metric (test, 1,785 SGA / 1,810 RR items) | [A] answer only | [B] reasoning | [B] − [A] |
 |---|---|---|---|
 | **Transition F1** (are the changes right) | 22.8 | **26.3** | **+3.44 [+1.92, +5.10]** ✅ |
 | R@10 | **89.3** | 88.6 | −0.70 [−0.96, −0.45] |
@@ -258,7 +273,7 @@ often and more accurately. The same effect appeared in an earlier run on val, wi
 Reasoning costs 2.6× the decoding time, and R@10/mR@10 dip slightly, because those metrics reward listing more
 candidates while the chain makes the model more conservative.
 
-### 7.2 Against baselines
+### 6.2 Against baselines
 
 | | Transition F1 | R@10 | RR-hard |
 |---|---|---|---|
@@ -278,7 +293,7 @@ Read honestly:
   (88.6 vs 89.9), nor the conditional prior on RR-hard (65.4 vs 69.9).
 * ❌ Both conditions are well short of the small non-LLM model (40.7).
 
-### 7.3 Where the remaining gap is
+### 6.3 Where the remaining gap is
 
 Refitting the reference model on subsets of its features (on val, thresholds tuned on one half and scored on the
 other) localises it:
@@ -298,7 +313,7 @@ duration alone. The other two groups add nothing, which also explains why the ch
 
 ---
 
-## 8. Limitations
+## 7. Limitations
 
 1. **Ground-truth graphs, not detector output.** Every method here reads human annotations, so our R@10 is not
    comparable with HyperGLM's 38.8 or SceneSayer's 74.8, which start from detectors or video features. Those
@@ -313,112 +328,3 @@ duration alone. The other two groups add nothing, which also explains why the ch
 6. **RR-hard reasoning adds nothing** (+0.33). The chain as written does not exploit the object's other groups,
    which the statistics say is where the RR signal is.
 
----
-
-## 9. What is in this folder
-
-```
-README.md          this file
-DESIGN.md          the design and pass/fail targets, written and fixed BEFORE the run
-RESULTS.md         the full result write-up, including the endpoint verdicts
-requirements.txt   pinned versions (transformers, trl, peft) — matching what the runs used
-
-examples/          sga.txt       a real SGA prompt with target [A] and target [B]
-                   rr_hard.txt   a real RR-hard prompt with both targets
-src/hyperglm_r/    data.py        load per-frame graphs, group them by video
-                   procedural.py  transition statistics (HyperGLM's procedural graph), train-only
-                   serialize.py   graph -> text for RR-hard (with the masked slot removed everywhere)
-                   tasks.py       RR-hard items; the per-frame SGA format the r13 build verifies against
-                   r13.py         the format used here: timelines, changes-only answers, chains,
-                                  parsing, vote counting, thresholded decisions, ranking
-                   metrics.py     R@K / mR@K, transition F1, RR scoring, persistence and table-rule baselines
-                   common.py      model + tokenizer + LoRA loading, item reading
-scripts/           build_ag_graphs.py    Action Genome annotation pickles -> per-frame graph JSONL
-                   build_tasks.py        split, procedural graph, SGA + RR-hard items
-                   build_tasks_r13.py    this experiment's items (asserts lossless, same gold, no leak)
-                   train_sft.py          SFT + LoRA for [A] or [B]
-                   generate_r13.py       greedy or sampled generation; resumable; merges the adapter
-                   score_r13.py          all metrics + all baselines + paired bootstrap (CPU)
-                   gbm_reference_r13.py  the non-LLM reference (CPU, ~2.5 min)
-kaggle/            run_pilot13_B.py, run_pilot13_A.py — one RTX PRO 6000 session each, end to end
-                   kernel-metadata.{A,B}.example.json — fill in your Kaggle user and dataset
-results/           score_{A,B}_{val,test}.json   every model number in section 7
-                   baselines_test_full.json      the no-model baselines
-                   gbm_reference.json            the non-LLM reference
-tests/             test_r13.py — 6 unit tests for the answer format, decoding, voting and ranking (no data needed)
-```
-
-Sanity anchors the test suite and scorer check: gold answers score 100 transition F1; an empty change list scores
-exactly persistence (17.8 test / 19.6 val); unparseable output scores 0.
-
----
-
-## 10. Reproducing it
-
-```bash
-pip install -r requirements.txt
-export HYPERGLM_DATA=/path/to/data     # Action Genome annotations in $HYPERGLM_DATA/action_genome/annotations
-
-# 1. data (CPU, a few minutes)
-python scripts/build_ag_graphs.py      # annotations -> per-frame graphs
-python scripts/build_tasks.py          # split + procedural graph + SGA/RR items
-python scripts/build_tasks_r13.py      # this experiment's format, with all integrity assertions
-python tests/test_r13.py               # 6/6 should pass
-
-# 2. baselines and the non-LLM reference (CPU, minutes — no GPU needed)
-python scripts/gbm_reference_r13.py --out results/gbm_reference.json
-
-# 3. train [B] (GPU). [A] is the same command with --condition A
-python scripts/train_sft.py --model Qwen/Qwen3-8B --condition B \
-  --train $HYPERGLM_DATA/tasks_r13/ag_sga13_train.jsonl $HYPERGLM_DATA/tasks_r13/ag_rr_train.jsonl \
-  --limits 5000 3000 --select_seed 0 --max_target_chars 4000 --max_length 4096 \
-  --batch 8 --grad_accum 2 --group_by_length --out runs/sft_B
-
-# 4. generate: 4 samples for SGA, greedy for RR-hard, on val and test
-python scripts/generate_r13.py --model Qwen/Qwen3-8B --adapter runs/sft_B --condition B \
-  --samples 4 --temperature 1.0 --max_new_tokens 1800 \
-  --files $HYPERGLM_DATA/tasks_r13/ag_sga13_val.jsonl --out runs/gen_B_val_vote4_sga.json
-python scripts/generate_r13.py --model Qwen/Qwen3-8B --adapter runs/sft_B --condition B \
-  --greedy --max_new_tokens 200 \
-  --files $HYPERGLM_DATA/tasks_r13/ag_rr_val.jsonl --out runs/gen_B_val_greedy_rr.json
-#   ... and the same two commands on the _test files
-
-# 5. score: choose the threshold on val, then reuse it on test
-python scripts/score_r13.py --split val  --gen runs/gen_B_val_vote4_sga.json runs/gen_B_val_greedy_rr.json \
-  --out runs/score_B_val.json
-python scripts/score_r13.py --split test --gen runs/gen_B_test_vote4_sga.json runs/gen_B_test_greedy_rr.json \
-  --tau_from runs/score_B_val.json --out runs/score_B_test.json
-```
-
-`kaggle/run_pilot13_{B,A}.py` run steps 3–5 unattended in one Kaggle session (strict mode: no internet, offline
-wheels, the model attached through `model_sources`), and resume if the session is cut short. For [A], SGA uses
-`--max_new_tokens 800` and RR-hard `40`, since its answers are much shorter.
-
-Only training and generation need a GPU. Everything else — data building, all baselines, the reference model, and
-all scoring — runs on CPU in minutes, so any number in section 7 can be re-derived from saved generations.
-
----
-
-## 11. FAQ
-
-**Why is Qwen's thinking mode off?** Our reasoning is the `<infer>` chain, which is visible, checkable and
-scoreable. Qwen's built-in thinking is hidden free-form text: with it on, [A] would silently reason too and the
-control would be meaningless, and we could not verify what the model used. Training with it on would also require
-thinking traces, which only a larger model could supply — that is distillation, and it would change the claim.
-Implementation detail: the SFT targets begin with the empty `<think></think>` block so the token sequence is
-identical at training and at inference.
-
-**Why is transition F1 so much lower than R@10?** They measure different things. R@10 is dominated by
-relationships that persist, which are easy; transition F1 looks only at changes, which are hard and rare. An
-oracle scores 100 on both; persistence scores 75.5 on R@10 and 17.8 on transition F1.
-
-**Why 4 samples and a threshold instead of one answer?** One greedy answer commits to a change only when the model
-believes it is more likely than not. For rare events, the F1-optimal cut-off is lower, and votes over 4 samples
-give a coarse probability that a val-chosen threshold can exploit. It also produces the ranking R@K needs.
-
-**Is the comparison with HyperGLM fair?** No, and we do not make it. We read ground-truth graphs; they start from
-detectors or video features. The paper's numbers appear in section 1 as context, never as a claim of improvement.
-
-**What would make the model beat the table rule?** The feature ablation in section 7.3 answers this: give the model
-duration and slot-history statistics as numbers rather than expecting it to derive them from the timeline, and only
-then consider reinforcement learning against transition F1 directly, starting from the [B] adapter.
